@@ -1,0 +1,6 @@
+[submodule "packages/tongo"]
+	path = packages/tongo
+	url = https://github.com/tonkeeper/tongo
+[submodule "third_party/tongo"]
+	path = third_party/tongo
+	url = https://github.com/tonkeeper/tongo

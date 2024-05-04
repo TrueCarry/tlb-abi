@@ -1,0 +1,26 @@
+{
+  "name": "tlb-abi",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "files": ["dist"],
+  "main": "./dist/tlb-abi.umd.cjs",
+  "module": "./dist/tlb-abi.js",
+  "exports": {
+    ".": {
+      "import": "./dist/tlb-abi.js",
+      "require": "./dist/tlb-abi.umd.cjs"
+    }
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "type-check": "tsc",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.8",
+    "typescript": "^5.2.2",
+    "vite": "^5.2.0"
+  }
+}
