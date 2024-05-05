@@ -15,8 +15,8 @@ const globalTypes = `
     right$1 {X:Type} {Y:Type} value:Y = Either X Y;
     pair$_ {X:Type} {Y:Type} first:X second:Y = Both X Y;
     _ grams:Grams = Coins;
-    jetton_payload#_ = JettonPayload;
-    nft_payload#_ = NFTPayload;
+    jetton_payload#_ data:Cell = JettonPayload;
+    nft_payload#_ data:Cell = NFTPayload;
 
     text#_ = Text;
 
