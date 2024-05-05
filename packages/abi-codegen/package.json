@@ -1,0 +1,26 @@
+{
+  "name": "abi-codegen",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "ts-node scripts/generate.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.12.8",
+    "ts-node": "^10.9.2",
+    "tslib": "^2.6.2",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@ton/core": "^0.56.3",
+    "@truecarry/tlb-codegen": "^1.0.3",
+    "fast-xml-parser": "^4.3.6"
+  },
+  "ts-node": {
+    "transpileOnly": true
+  }
+}
