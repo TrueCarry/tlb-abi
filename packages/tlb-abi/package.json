@@ -1,9 +1,11 @@
 {
-  "name": "tlb-abi",
+  "name": "@truecarry/tlb-abi",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/tlb-abi.umd.cjs",
   "module": "./dist/tlb-abi.js",
   "exports": {
@@ -19,8 +21,14 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@ton/core": "^0.56.3",
     "@types/node": "^20.12.8",
+    "abi-codegen": "workspace:*",
+    "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
     "vite": "^5.2.0"
+  },
+  "peerDependencies": {
+    "@ton/core": "^0.56.3"
   }
 }

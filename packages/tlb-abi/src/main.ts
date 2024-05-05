@@ -1,5 +1,1 @@
-function hello(){ 
-    console.log('world')
-}
-
-hello()
+export * from 'abi-codegen/build/index.ts'

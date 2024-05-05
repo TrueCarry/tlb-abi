@@ -45,9 +45,18 @@ importers:
 
   packages/tlb-abi:
     devDependencies:
+      '@ton/core':
+        specifier: ^0.56.3
+        version: 0.56.3(@ton/crypto@3.2.0)
       '@types/node':
         specifier: ^20.12.8
         version: 20.12.8
+      abi-codegen:
+        specifier: workspace:*
+        version: link:../abi-codegen
+      ts-node:
+        specifier: ^10.9.2
+        version: 10.9.2(@types/node@20.12.8)(typescript@5.4.5)
       typescript:
         specifier: ^5.2.2
         version: 5.4.5
@@ -1039,13 +1048,11 @@ packages:
     dependencies:
       '@ton/crypto': 3.2.0
       symbol.inspect: 1.0.1
-    dev: false
 
   /@ton/crypto-primitives@2.0.0:
     resolution: {integrity: sha512-wttiNClmGbI6Dfy/8oyNnsIV0b/qYkCJz4Gn4eP62lJZzMtVQ94Ko7nikDX1EfYHkLI1xpOitWpW+8ZuG6XtDg==}
     dependencies:
       jssha: 3.2.0
-    dev: false
 
   /@ton/crypto@3.2.0:
     resolution: {integrity: sha512-50RkwReEuV2FkxSZ8ht/x9+n0ZGtwRKGsJ0ay4I/HFhkYVG/awIIBQeH0W4j8d5lADdO5h01UtX8PJ8AjiejjA==}
@@ -1053,7 +1060,6 @@ packages:
       '@ton/crypto-primitives': 2.0.0
       jssha: 3.2.0
       tweetnacl: 1.0.3
-    dev: false
 
   /@truecarry/tlb-codegen@1.0.3(@babel/core@7.24.5)(@ton/crypto@3.2.0)(jest@29.7.0)(typescript@5.4.5):
     resolution: {integrity: sha512-y3M7eGpqGrYYfsmPgXlYaSnNx3JQT9yc1NRFuZlvZ2I/qPiG/9+3mhaXRB7aozHdT0NgMi3MyzPVBHYaRR9S2A==}
@@ -2352,7 +2358,6 @@ packages:
 
   /jssha@3.2.0:
     resolution: {integrity: sha512-QuruyBENDWdN4tZwJbQq7/eAK85FqrI4oDbXjy5IBhYD+2pTJyBUWZe8ctWaCkrV0gy6AaelgOZZBMeswEa/6Q==}
-    dev: false
 
   /kind-of@6.0.3:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
@@ -2918,7 +2923,6 @@ packages:
 
   /symbol.inspect@1.0.1:
     resolution: {integrity: sha512-YQSL4duoHmLhsTD1Pw8RW6TZ5MaTX5rXJnqacJottr2P2LZBF/Yvrc3ku4NUpMOm8aM0KOCqM+UAkMA5HWQCzQ==}
-    dev: false
 
   /test-exclude@6.0.0:
     resolution: {integrity: sha512-cAGWPIyOHU6zlmg88jwm7VRyXnMN7iV68OGAbYDk/Mh/xC/pzVPlQtY6ngoIH/5/tciuhGfvESU8GrHrcxD56w==}
@@ -3080,7 +3084,6 @@ packages:
 
   /tweetnacl@1.0.3:
     resolution: {integrity: sha512-6rt+RN7aOi1nGMyC4Xa5DdYiukl2UWCbcJft7YhxReBGQD7OAM8Pbxw6YMo4r2diNEA8FEmu32YOn9rhaiE5yw==}
-    dev: false
 
   /type-detect@4.0.8:
     resolution: {integrity: sha512-0fr/mIH1dlO+x7TlcMy+bIDqKPsw/70tVyeHW787goQjhmqaZe10uwLujubK9q9Lg6Fiho1KUKDYz0Z7k7g5/g==}

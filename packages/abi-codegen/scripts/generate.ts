@@ -221,6 +221,7 @@ ${internals.map(internal => `export { load${getConstructorType(internal['#text']
 import { Slice } from '@ton/core';
 
 ${internals.map(internal => `import { ${internal.exportFunction} } from '${internal.exportPath}';`).join('\n')}
+${internals.map(internal => `export { ${internal.exportFunction} } from '${internal.exportPath}';`).join('\n')}
 
 export function parseInternal(cs: Slice) {
     ${internals.map(internal => `
