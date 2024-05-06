@@ -18,16 +18,18 @@
     "dev": "vite",
     "build": "vite build && api-extractor run",
     "type-check": "tsc",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "publish": "npm publish"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.43.1",
     "@ton/core": "^0.56.3",
     "@types/node": "^20.12.8",
     "abi-codegen": "workspace:*",
     "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
-    "@microsoft/api-extractor": "^7.43.1"
+    "vite-plugin-dts": "^3.9.1"
   },
   "peerDependencies": {
     "@ton/core": "^0.56.3"

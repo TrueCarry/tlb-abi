@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "turbo build"
+    "build": "turbo build",
+    "pub": "turbo publish"
   },
   "devDependencies": {
     "typescript": "^5.2.2",

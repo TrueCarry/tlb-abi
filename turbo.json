@@ -2,8 +2,12 @@
   "$schema": "https://turbo.build/schema.json",
   "pipeline": {
     "build": {
-      "outputs": ["dist/**"]
+      "outputs": ["dist/**", "build/**"],
+      // "A workspace's `build` command depends on its dependencies'
+      // or devDependencies' `build` command being completed first"
+      "dependsOn": ["^build"]
     },
-    "type-check": {}
+    "type-check": {},
+    "publish": {}
   }
 }
