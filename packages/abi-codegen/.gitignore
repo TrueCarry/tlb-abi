@@ -1,1 +1,3 @@
 build
+scripts/*.d.ts
+scripts/test.ts
