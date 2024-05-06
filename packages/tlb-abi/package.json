@@ -1,13 +1,13 @@
 {
   "name": "@truecarry/tlb-abi",
-  "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "files": [
     "dist"
   ],
   "main": "./dist/tlb-abi.umd.cjs",
   "module": "./dist/tlb-abi.js",
+  "types": "./dist/tlb-abi.d.ts",
   "exports": {
     ".": {
       "import": "./dist/tlb-abi.js",
@@ -16,7 +16,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && api-extractor run",
     "type-check": "tsc",
     "preview": "vite preview"
   },
@@ -26,7 +26,8 @@
     "abi-codegen": "workspace:*",
     "ts-node": "^10.9.2",
     "typescript": "^5.2.2",
-    "vite": "^5.2.0"
+    "vite": "^5.2.0",
+    "@microsoft/api-extractor": "^7.43.1"
   },
   "peerDependencies": {
     "@ton/core": "^0.56.3"

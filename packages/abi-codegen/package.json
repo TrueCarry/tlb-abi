@@ -3,14 +3,16 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "types": "build/index.d.ts",
   "scripts": {
-    "build": "ts-node scripts/generate.ts"
+    "build": "rimraf ./build && ts-node scripts/generate.ts && tsc"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.12.8",
+    "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
     "tslib": "^2.6.2",
     "typescript": "^5.2.2"
