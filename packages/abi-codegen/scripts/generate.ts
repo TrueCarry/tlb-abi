@@ -1,7 +1,8 @@
-import {generateCodeFromData} from '@truecarry/tlb-codegen'
-import {XMLParser} from "fast-xml-parser"
+import { generateCodeFromData } from '@truecarry/tlb-codegen'
+import { XMLParser } from "fast-xml-parser"
 import fs from 'fs/promises'
-import {resolve} from "path";
+import { resolve } from "path";
+import * as ts from 'typescript';
 
 const globalTypes = `
     fixed_length_text$_ n:(uint 8) value:(n * uint8)
@@ -81,8 +82,40 @@ function toPascalCase(string: string) {
     .replace(new RegExp(/\w/), s => s.toUpperCase());
 }
 async function main() {
+  const globalTypesTlb = await generateCodeFromData(globalTypes, 'typescript')
+  await fs.mkdir(resolve(__dirname, `../build`), { recursive: true })
+  await fs.writeFile(resolve(__dirname, `../build/globals.ts`), globalTypesTlb)
+  const globalsAst = ts.createSourceFile('temp.ts', globalTypesTlb, ts.ScriptTarget.Latest)
+  let globalIdentifiers: string[] = []
+
+  function globalTransformer<T extends ts.Node>(context: ts.TransformationContext) {
+    return (rootNode: T) => {
+      const visitor = (node: ts.Node): ts.Node => {
+        if (node.kind === ts.SyntaxKind.FunctionDeclaration) {
+          const functionName = (node as ts.FunctionDeclaration)?.name?.escapedText
+
+          globalIdentifiers.push(functionName as string)
+        }
+        if (node.kind === ts.SyntaxKind.InterfaceDeclaration) {
+          const functionName = (node as ts.InterfaceDeclaration)?.name?.escapedText
+
+          globalIdentifiers.push(functionName as string)
+        }
+        if (node.kind === ts.SyntaxKind.TypeAliasDeclaration) {
+          const functionName = (node as ts.TypeAliasDeclaration)?.name?.escapedText
+
+          globalIdentifiers.push(functionName as string)
+        }
+        return ts.visitEachChild(node, visitor, context);
+      };
+
+      return ts.visitNode(rootNode, visitor);
+    }
+  }
+  ts.transform(globalsAst, [globalTransformer])
+
   const schemas = await fs.readdir(resolve(__dirname, '../../../third_party/tongo/abi/schemas'))
-  const internals = await Promise.all(schemas.map(async (schema) => {
+  const internals = await Promise.all(schemas.map(async (schema, i) => {
     // for (const schema of schemas) {
     const isFile = await fs.stat(resolve(__dirname, `../../../third_party/tongo/abi/schemas/${schema}`)).then(stat => stat.isFile()).catch(() => false)
     const isXml = schema.endsWith('.xml')
@@ -97,7 +130,7 @@ async function main() {
       return
     }
 
-    const XMLdata = await fs.readFile(resolve(__dirname, `../../../third_party/tongo/abi/schemas/${schema}`), {encoding: 'utf-8'})
+    const XMLdata = await fs.readFile(resolve(__dirname, `../../../third_party/tongo/abi/schemas/${schema}`), { encoding: 'utf-8' })
     const parser = new XMLParser({
       ignoreAttributes: false,
       allowBooleanAttributes: true,
@@ -144,10 +177,69 @@ async function main() {
       }
 
       let generated = await generateCodeFromData(tlbToGenerate, 'typescript')
-      if (generated)  {
+      if (generated) {
         generated = generated.replace(new RegExp(codeName[2], 'g'), pascalCaseName)
+
+        function transformer<T extends ts.Node>(context: ts.TransformationContext) {
+          return (rootNode: T) => {
+            const visitor = (node: ts.Node): ts.Node => {
+              if (node.kind === ts.SyntaxKind.FunctionDeclaration) {
+                const text = (node as ts.FunctionDeclaration).name?.escapedText
+                if (globalIdentifiers.includes(text as string)) {
+                  return undefined as any
+                }
+              }
+              if (node.kind === ts.SyntaxKind.InterfaceDeclaration) {
+                const text = (node as ts.FunctionDeclaration).name?.escapedText
+                if (globalIdentifiers.includes(text as string)) {
+                  return undefined as any
+                }
+              }
+              if (node.kind === ts.SyntaxKind.TypeAliasDeclaration) {
+                const text = (node as ts.FunctionDeclaration).name?.escapedText
+                if (globalIdentifiers.includes(text as string)) {
+                  return undefined as any
+                }
+              }
+              return ts.visitEachChild(node, visitor, context);
+            };
+
+            return ts.visitNode(rootNode, visitor);
+          }
+        }
+        const ast = ts.createSourceFile('temp.ts', generated, ts.ScriptTarget.Latest)
+        const newAst = ts.transform(ast, [transformer])
+
+        generated = ts.createPrinter().printNode(0, newAst.transformed[0], ast)
+        generated = `
+import {
+  Maybe, bitLen, Both, Either,
+  loadMaybe, storeMaybe, loadBoth, storeBoth, loadEither, storeEither,
+  Bytes, loadBytes, storeBytes,
+  Coins, loadCoins, storeCoins,
+  DNSRecord, loadDNSRecord, storeDNSRecord,
+  DNSRecord_dns_adnl_address, DNSRecord_dns_next_resolver,
+  DNSRecord_dns_smc_address,
+  DNSRecord_dns_storage_address,
+  Either_left,
+  Either_right,
+  FixedLengthText, loadFixedLengthText, storeFixedLengthText, Hashmap, HashmapNode,
+  HashmapNode_hmn_fork, HashmapNode_hmn_leaf, HmLabel, HmLabel_hml_long, HmLabel_hml_same,
+  HmLabel_hml_short, loadHashmapNode, storeHashmapNode, loadHmLabel, storeHmLabel,
+  loadHashmap, storeHashmap, JettonPayload, loadJettonPayload, storeJettonPayload,
+  Maybe_just, Maybe_nothing, NFTPayload, loadNFTPayload, storeNFTPayload,
+  ProtoList, loadProtoList, storeProtoList, ProtoList_proto_list_next,
+  ProtoList_proto_list_nil, Protocol, SmcCapList, loadSmcCapList, storeSmcCapList,
+  SmcCapList_cap_list_next, SmcCapList_cap_list_nil,
+  SmcCapability, Text, loadText, storeText, loadProtocol, storeProtocol,
+  loadSmcCapability, storeSmcCapability, True, loadTrue, storeTrue,
+  Unary, loadUnary, storeUnary, Unary_unary_succ, Unary_unary_zero, Unit,
+  hashmap_get_l, hmLabel_hml_short_get_n, loadUnit, storeUnit, unary_unary_succ_get_n
+} from '../../globals';
+${generated}
+`
       }
-      await fs.mkdir(resolve(__dirname, `../build/${folderName}/internals`), {recursive: true})
+      await fs.mkdir(resolve(__dirname, `../build/${folderName}/internals`), { recursive: true })
       await fs.writeFile(resolve(__dirname, `../build/${folderName}/internals/${internalName}.ts`), generated)
 
       return {
@@ -243,29 +335,29 @@ export function parseInternal(cs: Slice): ParsedInternal | undefined {
 }
 `;
 
-/*
-
-export function parseInternal(cs: Slice) {
-    ${internals.map(internal => `
-    try {
-        const boc = cs.asCell().toBoc();
-        const data = ${internal.exportFunction}(cs);${
-        internal.fixedLength ? `
-        if (cs.remainingBits !== 0 || cs.remainingRefs !== 0) {
-            throw new Error('Invalid data length');
-        }` : ''}
-        return {
-            schema: '${internal.folderName}' as const,
-            internal: '${internal.internalName}' as const,
-            boc: boc,
-            data: data,
-        };
-    } catch (e) {}
-`).join('\n')}
-
-    throw new Error('Unknown internal');
-} 
-*/
+  /*
+  
+  export function parseInternal(cs: Slice) {
+      ${internals.map(internal => `
+      try {
+          const boc = cs.asCell().toBoc();
+          const data = ${internal.exportFunction}(cs);${
+          internal.fixedLength ? `
+          if (cs.remainingBits !== 0 || cs.remainingRefs !== 0) {
+              throw new Error('Invalid data length');
+          }` : ''}
+          return {
+              schema: '${internal.folderName}' as const,
+              internal: '${internal.internalName}' as const,
+              boc: boc,
+              data: data,
+          };
+      } catch (e) {}
+  `).join('\n')}
+  
+      throw new Error('Unknown internal');
+  } 
+  */
   await fs.writeFile(resolve(__dirname, `../build/index.ts`), template)
 }
 
