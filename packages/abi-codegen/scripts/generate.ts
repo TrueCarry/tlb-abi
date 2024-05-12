@@ -129,11 +129,18 @@ async function main() {
       const internalName = internal['@_name']
       const pascalCaseName = toPascalCase(internalName)
 
-      const nameRegx = new RegExp(`=([ \n])+(.+);$`)
-      const codeName = nameRegx.exec(internal['#text'])
+      const nameRegex = new RegExp(`=([ \n])+(.+);$`)
+      const opcodeRegex = new RegExp(`^([a-zA-Z0-9_]+)#([a-f0-9]+)`)
+
+      const codeName = nameRegex.exec(internal['#text'])
+      const opCode = opcodeRegex.exec(internal['#text'])
       if (!codeName) {
         console.log('Not found', internal)
         throw new Error('Name not found')
+      }
+      if (!opCode) {
+        console.log('Not found', internal)
+        throw new Error('OpCode not found')
       }
 
       let generated = await generateCodeFromData(tlbToGenerate, 'typescript')
@@ -147,6 +154,8 @@ async function main() {
         folderName,
         internalName,
         pascalCaseName,
+        opCode: parseInt(opCode[2], 16),
+        fixedLength: internal['@_fixed_length'] ?? false,
       }
     }))
 
@@ -160,17 +169,20 @@ ${generatedInternals.map(internal => `export { load${internal.pascalCaseName} as
 
     await fs.writeFile(resolve(__dirname, `../build/${folderName}/index.ts`), template)
 
-    return internals.map(internal => ({
+    return generatedInternals.map(internal => ({
+      ...internal,
       schema: schema,
       folderName: folderName,
       // internalName: getConstructorName(internal),
-      internalName: internal['@_name'],
-      fixedLength: internal['@_fixed_length'] ?? false,
+      // internalName: internal.internalName,
+      // fixedLength: internal.fixedLength,
       // internalType: getConstructorType(internal),
       exportPath: `./${folderName}`,
-      exportFunction: toCamelCase(`load_${folderName}_${internal['@_name']}`)
+      exportFunction: toCamelCase(`load_${folderName}_${internal.internalName}`)
     }));
   })).then(p => p.flat().filter(p => p)) as {
+    pascalCaseName: string,
+    opCode: number,
     schema: string,
     folderName: string,
     internalName: string,
@@ -185,6 +197,53 @@ import { Slice } from '@ton/core';
 
 ${internals.map(internal => `import { ${internal.exportFunction} } from '${internal.exportPath}';`).join('\n')}
 ${internals.map(internal => `export { ${internal.exportFunction} } from '${internal.exportPath}';`).join('\n')}
+
+const parsers = [${internals.map(internal => `{
+  opCode: 0x${internal.opCode.toString(16)},
+  parse: ${internal.exportFunction},
+  fixedLength: ${internal.fixedLength},
+  folderName: '${internal.folderName}',
+  internalName: '${internal.internalName}',
+},\n`).join('')}]
+
+export type ParsedInternal = ${internals.map(internal => `{
+  opCode: 0x${internal.opCode.toString(16)}
+  schema: '${internal.folderName}'
+  internal: '${internal.internalName}'
+  boc: Buffer
+  data: ReturnType<typeof ${internal.exportFunction}>
+}`).join(' | ')}
+
+export function parseInternal(cs: Slice): ParsedInternal | undefined {
+    if (cs.remainingBits < 32) {
+      return undefined;
+    }
+
+    const opCode = cs.preloadUint(32);
+    for (const parser of parsers) {
+        if (opCode === parser.opCode) {
+            try {
+              const boc = cs.asCell().toBoc();
+              const data = parser.parse(cs);
+              if (parser.fixedLength && (cs.remainingBits !== 0 || cs.remainingRefs !== 0)) {
+                  throw new Error('Invalid data length');
+              }
+              return {
+                  opCode: parser.opCode as any,
+                  schema: parser.folderName as any,
+                  internal: parser.internalName as any,
+                  boc: boc,
+                  data: data,
+              } as any;
+          } catch (e) {}
+        }
+    }
+
+    return undefined;
+}
+`;
+
+/*
 
 export function parseInternal(cs: Slice) {
     ${internals.map(internal => `
@@ -206,8 +265,7 @@ export function parseInternal(cs: Slice) {
 
     throw new Error('Unknown internal');
 } 
-`;
-
+*/
   await fs.writeFile(resolve(__dirname, `../build/index.ts`), template)
 }
 
