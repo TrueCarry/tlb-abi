@@ -63,6 +63,23 @@ const ignoreList = [
   'subscriptions_v1'
 ]
 
+function toCamelCase(str: string) {
+  return str.replace(/_([a-zA-Z])/g, function (g) {
+    return g[1].toUpperCase();
+  });
+}
+
+function toPascalCase(string: string) {
+  return `${string}`
+    .toLowerCase()
+    .replace(new RegExp(/[-_]+/, 'g'), ' ')
+    .replace(new RegExp(/[^\w\s]/, 'g'), '')
+    .replace(
+      new RegExp(/\s+(.)(\w*)/, 'g'),
+      ($1, $2, $3) => `${$2.toUpperCase() + $3}`
+    )
+    .replace(new RegExp(/\w/), s => s.toUpperCase());
+}
 async function main() {
   const schemas = await fs.readdir(resolve(__dirname, '../../../third_party/tongo/abi/schemas'))
   const internals = await Promise.all(schemas.map(async (schema) => {
@@ -103,29 +120,42 @@ async function main() {
       return //continue
     }
 
-    await Promise.all(internals.map(async (internal) => {
+    const generatedInternals = await Promise.all(internals.map(async (internal) => {
       const tlbToGenerate = `
                 ${globalTypes}
                 ${types}
                 ${internal['#text']}
             `
       const internalName = internal['@_name']
+      const pascalCaseName = toPascalCase(internalName)
 
-      const generated = await generateCodeFromData(tlbToGenerate, 'typescript')
+      const nameRegx = new RegExp(`=([ \n])+(.+);$`)
+      const codeName = nameRegx.exec(internal['#text'])
+      if (!codeName) {
+        console.log('Not found', internal)
+        throw new Error('Name not found')
+      }
+
+      let generated = await generateCodeFromData(tlbToGenerate, 'typescript')
+      if (generated)  {
+        generated = generated.replace(new RegExp(codeName[2], 'g'), pascalCaseName)
+      }
       await fs.mkdir(resolve(__dirname, `../build/${folderName}/internals`), {recursive: true})
       await fs.writeFile(resolve(__dirname, `../build/${folderName}/internals/${internalName}.ts`), generated)
+
+      return {
+        folderName,
+        internalName,
+        pascalCaseName,
+      }
     }))
 
-    function toCamelCase(str: string) {
-      return str.replace(/_([a-zA-Z])/g, function (g) {
-        return g[1].toUpperCase();
-      });
-    }
+
 
     const template = `
-${internals.map(internal => `export { load${getConstructorType(internal['#text'])} as ${toCamelCase(
-      `load_${folderName}_${internal['@_name']}`
-    )} } from './internals/${internal['@_name']}';`).join('\n')}
+${generatedInternals.map(internal => `export { load${internal.pascalCaseName} as ${toCamelCase(
+      `load_${folderName}_${internal.internalName}`
+    )} } from './internals/${internal.internalName}';`).join('\n')}
         `;
 
     await fs.writeFile(resolve(__dirname, `../build/${folderName}/index.ts`), template)
@@ -160,12 +190,11 @@ export function parseInternal(cs: Slice) {
     ${internals.map(internal => `
     try {
         const boc = cs.asCell().toBoc();
-        const data = ${internal.exportFunction}(cs);
-        
-        ${internal.fixedLength ? `if (cs.remainingBits !== 0 || cs.remainingRefs !== 0) {
+        const data = ${internal.exportFunction}(cs);${
+        internal.fixedLength ? `
+        if (cs.remainingBits !== 0 || cs.remainingRefs !== 0) {
             throw new Error('Invalid data length');
         }` : ''}
-    
         return {
             schema: '${internal.folderName}' as const,
             internal: '${internal.internalName}' as const,
