@@ -1,6 +1,6 @@
 {
   "name": "@truecarry/tlb-abi",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "type": "module",
   "files": [
     "dist"
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.43.1",
-    "@ton/core": "^0.56.3",
+    "@ton/core": "^0.60.1",
     "@types/node": "^20.12.8",
     "abi-codegen": "workspace:*",
     "ts-node": "^10.9.2",

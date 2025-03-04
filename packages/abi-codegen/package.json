@@ -18,9 +18,9 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@ton/core": "^0.56.3",
-    "@truecarry/tlb-codegen": "^1.0.3",
-    "fast-xml-parser": "^4.3.6"
+    "@ton/core": "^0.60.1",
+    "@truecarry/tlb-codegen": "^1.1.1",
+    "fast-xml-parser": "^5.0.8"
   },
   "ts-node": {
     "transpileOnly": true

@@ -61,7 +61,9 @@ dns_storage_address#7473 bag_id:bits256 = DNSRecord;
 
 const ignoreList = [
   'tegro',
-  'subscriptions_v1'
+  'subscriptions_v1',
+  'wallets',
+  'multisig',
 ]
 
 function toCamelCase(str: string) {
@@ -234,7 +236,8 @@ import {
   SmcCapability, Text, loadText, storeText, loadProtocol, storeProtocol,
   loadSmcCapability, storeSmcCapability, True, loadTrue, storeTrue,
   Unary, loadUnary, storeUnary, Unary_unary_succ, Unary_unary_zero, Unit,
-  hashmap_get_l, hmLabel_hml_short_get_n, loadUnit, storeUnit, unary_unary_succ_get_n
+  hashmap_get_l, hmLabel_hml_short_get_n, loadUnit, storeUnit, unary_unary_succ_get_n,
+  loadBool, Bool, storeBool
 } from '../../globals';
 ${generated}
 `
