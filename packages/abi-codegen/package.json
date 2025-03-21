@@ -18,8 +18,8 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@ton-community/tlb-codegen": "2.0.0-beta.0",
     "@ton/core": "^0.60.1",
-    "@truecarry/tlb-codegen": "^1.1.1",
     "fast-xml-parser": "^5.0.8"
   },
   "ts-node": {
