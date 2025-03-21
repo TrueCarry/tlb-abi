@@ -1,6 +1,7 @@
 import fs from 'fs/promises'
 import { resolve } from "path";
 import { GenerateInternalParsers } from './generators/internal';
+import { GenerateJettonPayloadParsers } from './generators/jettons';
 import { getGlobalIdentifiers } from './generators/globals';
 
 async function main() {
@@ -10,20 +11,32 @@ async function main() {
   const schemasDir = resolve(__dirname, '../../../third_party/tongo/abi/schemas')
   const schemas = await fs.readdir(schemasDir)
   const fullSchemaUrls = schemas.map(schema => resolve(schemasDir, schema))
+
   const internals = await GenerateInternalParsers(fullSchemaUrls, globalIdentifiers)
+  const jettonPayloads = await GenerateJettonPayloadParsers(fullSchemaUrls, globalIdentifiers)
 
   const template = `
 import { Slice } from '@ton/core';
 
 ${internals.map(internal => `import { ${internal.exportFunction} } from '${internal.exportPath}';`).join('\n')}
 ${internals.map(internal => `export { ${internal.exportFunction} } from '${internal.exportPath}';`).join('\n')}
+${jettonPayloads.map(payload => `import { ${payload.exportFunction} } from '${payload.exportPath}';`).join('\n')}
+${jettonPayloads.map(payload => `export { ${payload.exportFunction} } from '${payload.exportPath}';`).join('\n')}
 
-const parsers = [${internals.map(internal => `{
+const internalParsers = [${internals.map(internal => `{
   opCode: 0x${internal.opCode.toString(16)},
   parse: ${internal.exportFunction},
   fixedLength: ${internal.fixedLength},
   folderName: '${internal.folderName}',
   internalName: '${internal.internalName}',
+},\n`).join('')}]
+
+const jettonPayloadParsers = [${jettonPayloads.map(payload => `{
+  opCode: 0x${payload.opCode.toString(16)},
+  parse: ${payload.exportFunction},
+  fixedLength: ${payload.fixedLength},
+  folderName: '${payload.folderName}',
+  payloadName: '${payload.payloadName}',
 },\n`).join('')}]
 
 export type ParsedInternal = ${internals.map(internal => `{
@@ -34,13 +47,21 @@ export type ParsedInternal = ${internals.map(internal => `{
   data: ReturnType<typeof ${internal.exportFunction}>
 }`).join(' | ')}
 
+export type ParsedJettonPayload = ${jettonPayloads.map(payload => `{
+  opCode: 0x${payload.opCode.toString(16)}
+  schema: '${payload.folderName}'
+  payload: '${payload.payloadName}'
+  boc: Buffer
+  data: ReturnType<typeof ${payload.exportFunction}>
+}`).join(' | ')}
+
 export function parseInternal(cs: Slice): ParsedInternal | undefined {
     if (cs.remainingBits < 32) {
       return undefined;
     }
 
     const opCode = cs.preloadUint(32);
-    for (const parser of parsers) {
+    for (const parser of internalParsers) {
         if (opCode === parser.opCode) {
             try {
               const boc = cs.asCell().toBoc();
@@ -52,6 +73,34 @@ export function parseInternal(cs: Slice): ParsedInternal | undefined {
                   opCode: parser.opCode as any,
                   schema: parser.folderName as any,
                   internal: parser.internalName as any,
+                  boc: boc,
+                  data: data,
+              } as any;
+          } catch (e) {}
+        }
+    }
+
+    return undefined;
+}
+
+export function parseJettonPayload(cs: Slice): ParsedJettonPayload | undefined {
+    if (cs.remainingBits < 32) {
+      return undefined;
+    }
+
+    const opCode = cs.preloadUint(32);
+    for (const parser of jettonPayloadParsers) {
+        if (opCode === parser.opCode) {
+            try {
+              const boc = cs.asCell().toBoc();
+              const data = parser.parse(cs);
+              if (parser.fixedLength && (cs.remainingBits !== 0 || cs.remainingRefs !== 0)) {
+                  throw new Error('Invalid data length');
+              }
+              return {
+                  opCode: parser.opCode as any,
+                  schema: parser.folderName as any,
+                  payload: parser.payloadName as any,
                   boc: boc,
                   data: data,
               } as any;
