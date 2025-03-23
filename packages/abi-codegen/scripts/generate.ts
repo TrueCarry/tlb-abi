@@ -138,6 +138,15 @@ ${internalExports}
 ${jettonImports}
 ${jettonExports}
 
+export type JettonPayloadWithParsed = JettonPayload & { parsed?: ParsedJettonPayload }
+
+// Recursive type mapper that replaces JettonPayload with JettonPayloadWithParsed
+export type ReplaceJettonPayload<T> = 
+  T extends JettonPayload ? JettonPayloadWithParsed :
+  T extends Array<infer U> ? Array<ReplaceJettonPayload<U>> :
+  T extends object ? { [K in keyof T]: ReplaceJettonPayload<T[K]> } :
+  T;
+
 const internalParsers = [${internals.map(internal => `{
   opCode: 0x${internal.opCode.toString(16)},
   parse: ${internal.exportFunction},
@@ -271,8 +280,8 @@ export function parseJettonPayload(cs: Slice): ParsedJettonPayload | undefined {
     return undefined;
 }
 
-export function parseWithPayloads(cs: Slice) {
-  const internal = parseInternal(cs)
+export function parseWithPayloads<T extends ParsedInternal>(cs: Slice): ReplaceJettonPayload<T> | undefined {
+  const internal = parseInternal(cs) as T
   if (!internal) {
     return undefined
   }
