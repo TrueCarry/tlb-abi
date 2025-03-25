@@ -142,59 +142,80 @@ export function parseJettonPayload(cs: Slice): ParsedJettonPayload | undefined {
     return undefined;
 }
 
+/**
+ * Runtime function that replaces JettonPayload instances with JettonPayloadWithParsed
+ * If the object has JettonPayload children - replace only it, otherwise return original object
+ */
+export function replaceJettonPayload<T extends ParsedInternal>(obj: T): {
+  data: ReplaceJettonPayload<T>
+  hasChanges: boolean
+ } {
+  if (obj === null || obj === undefined || typeof obj !== 'object') {
+    return {
+      data: obj,
+      hasChanges: false
+    }
+  }
+
+  // Direct JettonPayload case
+  if (obj instanceof Object && 'kind' in obj && obj.kind === 'JettonPayload') {
+    try {
+      const slice = (obj.data as any).asSlice()
+      const payload = parseJettonPayload(slice as any)
+      if (payload) {
+        (obj as any)['parsed'] = payload // ts-ignore
+      }
+      return {
+        data: obj as unknown as JettonPayloadWithParsed as unknown as ReplaceJettonPayload<T>,
+        hasChanges: true
+      }
+    } catch (e) {
+      // Not a valid Jetton payload, leave as is
+    }
+    return {
+      data: obj as unknown as JettonPayloadWithParsed as unknown as ReplaceJettonPayload<T>,
+      hasChanges: false
+    }
+  }
+  
+  // Array case
+  if (Array.isArray(obj)) {
+    const replaced = obj.map(item => replaceJettonPayload(item))
+    const hasChanges = replaced.some(item => item.hasChanges)
+    return {
+      data: hasChanges 
+        ? replaced.map(item => item.data) as unknown as ReplaceJettonPayload<T> 
+        : obj as unknown as ReplaceJettonPayload<T>,
+      hasChanges: hasChanges
+    }
+  }
+  
+  // Regular object case
+  let hasChanges = false;
+  const result = {...obj} as any;
+  
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const {data, hasChanges: hasChangesInner} = replaceJettonPayload((obj as any)[key]);
+      if (hasChangesInner) {
+        hasChanges = true;
+        result[key] = data;
+      }
+    }
+  }
+  
+  // Return original object if no changes were made
+  return {
+    data: hasChanges ? result as unknown as ReplaceJettonPayload<T> : obj as unknown as ReplaceJettonPayload<T>,
+    hasChanges: hasChanges
+  }
+}
+
 export function parseWithPayloads<T extends ParsedInternal>(cs: Slice): ReplaceJettonPayload<T> | undefined {
   const internal = parseInternal(cs) as T
   if (!internal) {
     return undefined
   }
 
-  // Recursive function to deep search the object
-  const processPayloads = (obj: any): any => {
-    if (!obj || typeof obj !== 'object') {
-      return obj
-    }
-    if (obj?.prototype && typeof obj?.prototype === 'object') {
-      return obj
-    }
-    if (obj?.constructor && typeof obj?.constructor === 'function') {
-      return obj
-    }
-
-    // Handle arrays
-    if (Array.isArray(obj)) {
-      return obj.map(item => processPayloads(item))
-    }
-
-    // Process each property
-    const result = obj
-    for (const key in result) {
-      const value = result[key]
-
-      if (value instanceof Buffer) {
-        continue
-      }
-      if (value?.prototype && typeof value?.prototype === 'object') {
-        continue
-      }
-      // If we have a Buffer that could be a JettonPayload, try to parse it
-      if (value instanceof Object && 'kind' in value && value.kind === 'JettonPayload') {
-        try {
-          const slice = value.data.asSlice()
-          const payload = parseJettonPayload(slice)
-          if (payload) {
-            result[key]['parsed'] = payload
-          }
-        } catch (e) {
-          // Not a valid Jetton payload, leave as is
-        }
-      } else if (typeof value === 'object' && value !== null) {
-        // Recursively process nested objects
-        result[key] = processPayloads(value)
-      }
-    }
-    
-    return result
-  }
-
-  return processPayloads(internal)
+  return replaceJettonPayload(internal).data
 }
