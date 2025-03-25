@@ -296,6 +296,12 @@ export function parseWithPayloads<T extends ParsedInternal>(cs: Slice): ReplaceJ
     if (!obj || typeof obj !== 'object') {
       return obj
     }
+    if (obj?.prototype && typeof obj?.prototype === 'object') {
+      return obj
+    }
+    if (obj?.constructor && typeof obj?.constructor === 'function') {
+      return obj
+    }
 
     // Handle arrays
     if (Array.isArray(obj)) {
@@ -303,14 +309,16 @@ export function parseWithPayloads<T extends ParsedInternal>(cs: Slice): ReplaceJ
     }
 
     // Process each property
-    const result = { ...obj }
+    const result = obj
     for (const key in result) {
       const value = result[key]
 
       if (value instanceof Buffer) {
         continue
       }
-      
+      if (value?.prototype && typeof value?.prototype === 'object') {
+        continue
+      }
       // If we have a Buffer that could be a JettonPayload, try to parse it
       if (value instanceof Object && 'kind' in value && value.kind === 'JettonPayload') {
         try {
