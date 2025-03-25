@@ -23,5 +23,6 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
   },
-  "include": ["src", "scripts", "build"]
+  "include": ["src", "scripts", "build"],
+  "exclude": ["scripts/test.ts"]
 }
