@@ -11,6 +11,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/debug": "^4.1.12",
     "@types/node": "^20.12.8",
     "rimraf": "^5.0.5",
     "ts-node": "^10.9.2",
@@ -18,8 +19,9 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@ton-community/tlb-codegen": "2.0.0-beta.0",
     "@ton/core": "^0.60.1",
-    "@truecarry/tlb-codegen": "^1.1.1",
+    "debug": "^4.4.0",
     "fast-xml-parser": "^5.0.8"
   },
   "ts-node": {
